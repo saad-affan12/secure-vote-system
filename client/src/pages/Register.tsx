@@ -5,7 +5,7 @@ import axios from 'axios';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Navbar from '../components/Navbar';
 import { User, Mail, IdCard, Lock, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
-import { API_URL } from '../config/api';
+import { API_URL, API_URL_ERROR } from '../config/api';
 
 const steps = ['Name + Email', 'Voter ID + Password', 'Register'];
 
@@ -40,6 +40,12 @@ const Register = () => {
   };
 
   const handleSubmit = async () => {
+    if (!API_URL) {
+      console.error(API_URL_ERROR);
+      triggerError(API_URL_ERROR);
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -55,8 +61,9 @@ const Register = () => {
 
       navigate('/login', { state: { registered: true } });
     } catch (err: any) {
+      const message = err.response?.data?.message || err.message || 'Registration failed';
       console.error(err.response?.data || err.message);
-      setError('Registration failed');
+      setError(message);
     } finally {
       setLoading(false);
     }
