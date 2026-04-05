@@ -1,0 +1,28 @@
+CREATE TABLE elections (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  start_date DATETIME,
+  end_date DATETIME,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE candidates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  election_id INT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  party VARCHAR(255),
+  photo VARCHAR(512),
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE
+);
+
+CREATE TABLE votes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  candidate_id INT NOT NULL,
+  election_id INT NOT NULL,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
+  FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE
+);

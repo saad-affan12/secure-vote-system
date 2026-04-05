@@ -1,0 +1,13 @@
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100),
+  email VARCHAR(100) UNIQUE,
+  voterId VARCHAR(100) UNIQUE,
+  password VARCHAR(255),
+  role ENUM('admin','voter') DEFAULT 'voter',
+  isVerified BOOLEAN DEFAULT FALSE,
+  hasVoted BOOLEAN DEFAULT FALSE,
+  otp VARCHAR(10),
+  otpExpiry DATETIME,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
