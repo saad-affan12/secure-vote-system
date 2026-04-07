@@ -29,6 +29,7 @@ const App: React.FC = () => {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/register/admin" element={<Register />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/vote" element={<VotingDashboard />} />
                   <Route path="/confirmation" element={<Confirmation />} />

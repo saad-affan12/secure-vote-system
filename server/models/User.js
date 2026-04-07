@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true, lowercase: true, trim: true },
   voterId: { type: String, unique: true, trim: true },
   password: { type: String },
-  role: { type: String, default: 'voter' },
+  role: { type: String, enum: ['voter', 'admin'], default: 'voter' },
   isVerified: { type: Boolean, default: false },
   hasVoted: { type: Boolean, default: false },
   otp: { type: String },

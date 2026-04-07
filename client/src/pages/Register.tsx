@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '../services/api';
@@ -15,6 +15,16 @@ const Register = () => {
   const [shakeError, setShakeError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [role, setRole] = useState<'voter' | 'admin'>('voter');
+
+  useEffect(() => {
+    try {
+      const isAdminRoute = window.location.pathname.includes('admin');
+      if (isAdminRoute) setRole('admin');
+    } catch (e) {
+      // ignore in non-browser environments
+    }
+  }, []);
 
   const set = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
@@ -54,7 +64,7 @@ const Register = () => {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password, role })
       })
 
       const data = await res.json().catch(() => ({}))
@@ -67,10 +77,11 @@ const Register = () => {
       }
 
       const generated = data.voterId
+      const returnedRole = data.role || role
       if (generated) {
-        alert(`Registered successfully. Your Voter ID is ${generated}`)
+        alert(`Registered as ${returnedRole}. Your Voter ID is ${generated}`)
       } else {
-        alert('Registered successfully')
+        alert(`Registered as ${returnedRole}`)
       }
 
       navigate('/login', { state: { registered: true, voterId: generated } })

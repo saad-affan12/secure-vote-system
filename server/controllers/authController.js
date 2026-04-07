@@ -42,7 +42,7 @@ export async function registerUser(req, res) {
     })
     await user.save()
 
-    return res.status(201).json({ message: 'User registered successfully', voterId: generatedVoterId })
+    return res.status(201).json({ message: 'User registered successfully', voterId: generatedVoterId, role: normalizedRole })
   } catch (err) {
     console.error('registerUser error', err)
     return res.status(500).json({ message: 'Internal server error' })
