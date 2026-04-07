@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import { pool } from '../config/db.js'
+import User from '../models/User.js'
 
 const SALT_ROUNDS = 10
 const JWT_SECRET = process.env.JWT_SECRET || 'change_me'
@@ -16,27 +16,22 @@ export async function registerUser(req, res) {
     const normalizedVoterId = String(voterId).trim()
     const normalizedRole = role === 'admin' ? 'admin' : 'voter'
 
-    const [emailExisting] = await pool.execute(
-      'SELECT id FROM users WHERE email = ? LIMIT 1',
-      [normalizedEmail]
-    )
-    if (emailExisting.length > 0) {
-      return res.status(409).json({ message: 'Email already exists' })
-    }
+    const emailExisting = await User.findOne({ email: normalizedEmail })
+    if (emailExisting) return res.status(409).json({ message: 'Email already exists' })
 
-    const [voterIdExisting] = await pool.execute(
-      'SELECT id FROM users WHERE voterId = ? LIMIT 1',
-      [normalizedVoterId]
-    )
-    if (voterIdExisting.length > 0) {
-      return res.status(409).json({ message: 'Voter ID already exists' })
-    }
+    const voterIdExisting = await User.findOne({ voterId: normalizedVoterId })
+    if (voterIdExisting) return res.status(409).json({ message: 'Voter ID already exists' })
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
-    await pool.execute(
-      'INSERT INTO users (name, email, voterId, password, role, isVerified, createdAt) VALUES (?, ?, ?, ?, ?, 1, NOW())',
-      [name, normalizedEmail, normalizedVoterId, passwordHash, normalizedRole]
-    )
+    const user = new User({
+      name,
+      email: normalizedEmail,
+      voterId: normalizedVoterId,
+      password: passwordHash,
+      role: normalizedRole,
+      isVerified: true
+    })
+    await user.save()
 
     return res.status(201).json({ message: 'Registration successful' })
   } catch (err) {
@@ -52,21 +47,16 @@ export async function loginUser(req, res) {
 
     const identifier = String(email).trim()
 
-    const [rows] = await pool.execute(
-      'SELECT id, name, email, voterId, password, role, hasVoted, isVerified FROM users WHERE email = ? OR voterId = ? LIMIT 1',
-      [identifier.toLowerCase(), identifier]
-    )
-    if (rows.length === 0) return res.status(404).json({ message: 'User not found' })
-
-    const user = rows[0]
+    const user = await User.findOne({ $or: [{ email: identifier.toLowerCase() }, { voterId: identifier }] })
+    if (!user) return res.status(404).json({ message: 'User not found' })
 
     const match = await bcrypt.compare(password, user.password)
     if (!match) return res.status(401).json({ message: 'Invalid password' })
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' })
+    const token = jwt.sign({ userId: String(user._id) }, JWT_SECRET, { expiresIn: '7d' })
 
     const safeUser = {
-      id: user.id,
+      id: String(user._id),
       name: user.name,
       email: user.email,
       voterId: user.voterId,

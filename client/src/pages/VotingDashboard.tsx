@@ -175,7 +175,7 @@ const VotingDashboard = () => {
     }
   };
 
-  if (!user || user.role !== 'voter') return null;
+  if (!user || user.role !== 'voter') return <div>Loading...</div>;
   if (!events) return <div>Loading...</div>;
 
   return (

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { registerUser } from '../services/api';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Navbar from '../components/Navbar';
 import { User, Mail, IdCard, Lock, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
-import { API_URL, API_URL_ERROR } from '../config/api';
 
 const steps = ['Name + Email', 'Voter ID + Password', 'Register'];
 
@@ -40,11 +39,7 @@ const Register = () => {
   };
 
   const handleSubmit = async () => {
-    if (!API_URL) {
-      console.error(API_URL_ERROR);
-      triggerError(API_URL_ERROR);
-      return;
-    }
+    // use `registerUser` service which uses configured `API_URL`
 
     setLoading(true);
     setError('');
@@ -52,12 +47,13 @@ const Register = () => {
     try {
       const { name, email, voterId, password } = form;
 
-      await axios.post(`${API_URL}/auth/register`, {
-        name,
-        email,
-        voterId,
-        password,
-      });
+      const res = await registerUser({ name, email, voterId, password });
+      if (!res || (res.status !== 200 && res.status !== 201)) {
+        const msg = res?.data?.message || 'Registration failed';
+        setError(msg);
+        setLoading(false);
+        return;
+      }
 
       navigate('/login', { state: { registered: true } });
     } catch (err: any) {
