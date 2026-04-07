@@ -6,18 +6,6 @@ import User from '../models/User.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change_me'
 
-function getUserIdFromReq(req) {
-  const auth = req.headers.authorization
-  if (!auth) return null
-  const token = auth.split(' ')[1]
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET)
-    return decoded.userId
-  } catch (err) {
-    return null
-  }
-}
-
 export async function getElectionsForVoter(req, res) {
   try {
     const elections = await Election.find().sort({ created_at: -1 }).lean()
@@ -29,10 +17,24 @@ export async function getElectionsForVoter(req, res) {
         const votes = await Vote.countDocuments({ candidate_id: c._id })
         map[String(c._id)] = votes
       }
-      result.push({ id: String(el._id), title: el.title, description: el.description, start_date: el.start_date, end_date: el.end_date, candidates: cands.map(c => ({ id: String(c._id), user_id: c.user_id ? String(c.user_id._id || c.user_id) : null, name: c.user_id ? c.user_id.name : null, party: c.party, votes: map[String(c._id)] || 0 })) })
+      result.push({ 
+        id: String(el._id), 
+        title: el.title, 
+        description: el.description, 
+        start_date: el.start_date, 
+        end_date: el.end_date, 
+        candidates: cands.map(c => ({ 
+          id: String(c._id),
+          candidate_id: String(c._id),
+          user_id: c.user_id ? String(c.user_id._id || c.user_id) : null, 
+          name: c.user_id ? c.user_id.name : null, 
+          party: c.party, 
+          votes: map[String(c._id)] || 0 
+        })) 
+      })
     }
 
-    const userId = getUserIdFromReq(req)
+    const userId = req.userId
     let userVotes = {}
     if (userId) {
       const rows = await Vote.find({ user_id: userId }).lean()
@@ -55,7 +57,14 @@ export async function getCandidatesForElection(req, res) {
     const result = []
     for (const c of cands) {
       const votes = await Vote.countDocuments({ candidate_id: c._id })
-      result.push({ candidate_id: String(c._id), user_id: c.user_id ? String(c.user_id._id || c.user_id) : null, name: c.user_id ? c.user_id.name : null, party: c.party, votes })
+      result.push({ 
+        id: String(c._id),
+        candidate_id: String(c._id),
+        user_id: c.user_id ? String(c.user_id._id || c.user_id) : null, 
+        name: c.user_id ? c.user_id.name : null, 
+        party: c.party, 
+        votes 
+      })
     }
 
     return res.status(200).json({ candidates: result })
@@ -67,7 +76,7 @@ export async function getCandidatesForElection(req, res) {
 
 export async function submitVote(req, res) {
   try {
-    const userId = getUserIdFromReq(req)
+    const userId = req.userId
     if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 
     const { electionId, candidateId } = req.body || {}

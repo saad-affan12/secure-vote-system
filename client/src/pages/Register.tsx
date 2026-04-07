@@ -50,46 +50,32 @@ const Register = () => {
 
   const handleRegister = async () => {
     try {
-      setLoading(true)
-      setError('')
+      setLoading(true);
+      setError('');
 
-      const { name, email, password } = form
+      const { name, email, password } = form;
 
-      const apiUrl = String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') || '/api'
-      const url = `${apiUrl}/auth/register`
-      
-      console.log('API URL:', import.meta.env.VITE_API_URL)
-      console.log('Final URL:', url)
-      console.log('Request payload:', { name, email, password: '***', role })
+      const res = await registerUser({ name, email, password, role });
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role })
-      })
-
-      console.log('Response status:', res.status)
-      const data = await res.json()
-      console.log('Response data:', data)
-
-      if (!res.ok) {
-        throw new Error(data.message || `Registration failed (${res.status})`)
+      if (!res || res.status !== 201) {
+        throw new Error(res?.data?.message || 'Registration failed');
       }
 
-      // SUCCESS
-      alert(`Registered successfully!\nVoter ID: ${data.voterId}`)
+      const data = res.data || {};
+      const voterId = data.voterId || '';
+
+      // SUCCESS - show confirmation
+      alert(`Registered successfully!\nVoter ID: ${voterId}`);
 
       // REDIRECT TO LOGIN
-      window.location.href = '/login'
+      navigate('/login', { replace: true });
     } catch (err: any) {
-      console.error('Register error:', err)
-      console.error('Error message:', err?.message)
-      console.error('Full error:', err)
-      const errorMsg = err?.message || 'Something went wrong'
-      setError(errorMsg)
-      alert(errorMsg)
+      console.error('Register error:', err);
+      const errorMsg = err?.response?.data?.message || err?.message || 'Something went wrong';
+      setError(errorMsg);
+      triggerError(errorMsg);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
