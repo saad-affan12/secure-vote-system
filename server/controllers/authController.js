@@ -7,33 +7,42 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change_me'
 
 export async function registerUser(req, res) {
   try {
-    const { name, email, voterId, password, role } = req.body || {}
-    if (!name || !email || !voterId || !password) {
+    const { name, email, password, role } = req.body || {}
+    if (!name || !email || !password) {
       return res.status(400).json({ message: 'Missing required fields' })
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
-    const normalizedVoterId = String(voterId).trim()
     const normalizedRole = role === 'admin' ? 'admin' : 'voter'
 
     const emailExisting = await User.findOne({ email: normalizedEmail })
     if (emailExisting) return res.status(409).json({ message: 'Email already exists' })
 
-    const voterIdExisting = await User.findOne({ voterId: normalizedVoterId })
-    if (voterIdExisting) return res.status(409).json({ message: 'Voter ID already exists' })
+    // generate a unique voterId in format: V + 5-digit number (zero-padded)
+    async function generateUniqueVoterId() {
+      while (true) {
+        const num = Math.floor(Math.random() * 100000).toString().padStart(5, '0')
+        const candidate = `V${num}`
+        // check uniqueness
+        // eslint-disable-next-line no-await-in-loop
+        const exists = await User.findOne({ voterId: candidate })
+        if (!exists) return candidate
+      }
+    }
+    const generatedVoterId = await generateUniqueVoterId()
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
     const user = new User({
       name,
       email: normalizedEmail,
-      voterId: normalizedVoterId,
+      voterId: generatedVoterId,
       password: passwordHash,
       role: normalizedRole,
       isVerified: true
     })
     await user.save()
 
-    return res.status(201).json({ message: 'Registration successful' })
+    return res.status(201).json({ message: 'User registered successfully', voterId: generatedVoterId })
   } catch (err) {
     console.error('registerUser error', err)
     return res.status(500).json({ message: 'Internal server error' })

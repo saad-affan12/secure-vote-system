@@ -13,7 +13,7 @@ interface User {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string, role: 'voter' | 'admin') => Promise<{ success: boolean; message?: string }>;
-  register: (data: { name: string; email: string; voterId: string; password: string }) => Promise<boolean>;
+  register: (data: { name: string; email: string; password: string }) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
 
-  const register = useCallback(async (data: { name: string; email: string; voterId: string; password: string }) => {
+  const register = useCallback(async (data: { name: string; email: string; password: string }) => {
     try {
       const res = await (await import('../services/api')).registerUser(data)
       return res.status === 201 || res.status === 200
