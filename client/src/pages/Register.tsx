@@ -39,35 +39,48 @@ const Register = () => {
   };
 
   const handleSubmit = async () => {
-    // use `registerUser` service which uses configured `API_URL`
-
-    setLoading(true);
-    setError('');
+    setLoading(true)
+    setError('')
 
     try {
-      const { name, email, password } = form;
+      const { name, email, password } = form
 
-      const res = await registerUser({ name, email, password });
-      if (!res || (res.status !== 200 && res.status !== 201)) {
-        const msg = res?.data?.message || 'Registration failed';
-        setError(msg);
-        setLoading(false);
-        return;
+      // debug: show which API URL we're using
+      console.log('API:', import.meta.env.VITE_API_URL)
+
+      const base = String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+      const url = base ? `${base}/auth/register` : `/api/auth/register`
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        const msg = data.message || 'Registration failed'
+        setError(msg)
+        alert(msg)
+        return
       }
 
-      // show the generated voter ID returned from the server
-      const generated = res.data?.voterId
+      const generated = data.voterId
       if (generated) {
-        alert(`Your Voter ID is ${generated}`)
+        alert(`Registered successfully. Your Voter ID is ${generated}`)
+      } else {
+        alert('Registered successfully')
       }
 
-      navigate('/login', { state: { registered: true, voterId: generated } });
+      navigate('/login', { state: { registered: true, voterId: generated } })
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Registration failed';
-      console.error(err.response?.data || err.message);
-      setError(message);
+      console.error('Register error:', err)
+      const msg = err?.message || 'Registration failed'
+      setError(msg)
+      alert(msg)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   };
 
@@ -231,17 +244,7 @@ const Register = () => {
                   disabled={loading}
                   className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {loading ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                      className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                    />
-                  ) : (
-                    <>
-                      Register <CheckCircle className="w-4 h-4" />
-                    </>
-                  )}
+                  {loading ? 'Registering...' : (<><span>Register</span> <CheckCircle className="w-4 h-4" /></>)}
                 </button>
               )}
             </div>
