@@ -48,48 +48,34 @@ const Register = () => {
     setStep((s) => Math.min(s + 1, 2));
   };
 
-  const handleSubmit = async () => {
-    setLoading(true)
-    setError('')
-
+  const handleRegister = async () => {
     try {
+      setLoading(true)
+
       const { name, email, password } = form
 
-      // debug: show which API URL we're using
-      console.log('API:', import.meta.env.VITE_API_URL)
+      console.log('API URL:', import.meta.env.VITE_API_URL)
 
-      const base = String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
-      const url = base ? `${base}/auth/register` : `/api/auth/register`
-
-      const res = await fetch(url, {
+      const res = await fetch(`${String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') || '/api'}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, role })
       })
 
-      const data = await res.json().catch(() => ({}))
+      const data = await res.json()
 
       if (!res.ok) {
-        const msg = data.message || 'Registration failed'
-        setError(msg)
-        alert(msg)
-        return
+        throw new Error(data.message || 'Registration failed')
       }
 
-      const generated = data.voterId
-      const returnedRole = data.role || role
-      if (generated) {
-        alert(`Registered as ${returnedRole}. Your Voter ID is ${generated}`)
-      } else {
-        alert(`Registered as ${returnedRole}`)
-      }
+      // SUCCESS
+      alert(`Registered successfully!\nVoter ID: ${data.voterId}`)
 
-      navigate('/login', { state: { registered: true, voterId: generated } })
+      // REDIRECT TO LOGIN
+      window.location.href = '/login'
     } catch (err: any) {
       console.error('Register error:', err)
-      const msg = err?.message || 'Registration failed'
-      setError(msg)
-      alert(msg)
+      alert(err?.message || 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -251,7 +237,7 @@ const Register = () => {
                 </button>
               ) : (
                 <button
-                  onClick={handleSubmit}
+                  onClick={handleRegister}
                   disabled={loading}
                   className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
