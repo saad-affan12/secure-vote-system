@@ -51,21 +51,29 @@ const Register = () => {
   const handleRegister = async () => {
     try {
       setLoading(true)
+      setError('')
 
       const { name, email, password } = form
 
+      const apiUrl = String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') || '/api'
+      const url = `${apiUrl}/auth/register`
+      
       console.log('API URL:', import.meta.env.VITE_API_URL)
+      console.log('Final URL:', url)
+      console.log('Request payload:', { name, email, password: '***', role })
 
-      const res = await fetch(`${String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') || '/api'}/auth/register`, {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, role })
       })
 
+      console.log('Response status:', res.status)
       const data = await res.json()
+      console.log('Response data:', data)
 
       if (!res.ok) {
-        throw new Error(data.message || 'Registration failed')
+        throw new Error(data.message || `Registration failed (${res.status})`)
       }
 
       // SUCCESS
@@ -75,7 +83,11 @@ const Register = () => {
       window.location.href = '/login'
     } catch (err: any) {
       console.error('Register error:', err)
-      alert(err?.message || 'Something went wrong')
+      console.error('Error message:', err?.message)
+      console.error('Full error:', err)
+      const errorMsg = err?.message || 'Something went wrong'
+      setError(errorMsg)
+      alert(errorMsg)
     } finally {
       setLoading(false)
     }
