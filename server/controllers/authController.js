@@ -18,11 +18,11 @@ export async function registerUser(req, res) {
     const emailExisting = await User.findOne({ email: normalizedEmail })
     if (emailExisting) return res.status(409).json({ message: 'Email already exists' })
 
-    // generate a unique voterId in format: V + 5-digit number (zero-padded)
+    // generate a unique voterId in format: VOTE + 6-digit number
     async function generateUniqueVoterId() {
       while (true) {
-        const num = Math.floor(Math.random() * 100000).toString().padStart(5, '0')
-        const candidate = `V${num}`
+        const num = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
+        const candidate = `VOTE${num}`
         // check uniqueness
         // eslint-disable-next-line no-await-in-loop
         const exists = await User.findOne({ voterId: candidate })

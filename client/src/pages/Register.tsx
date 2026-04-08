@@ -12,6 +12,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [shakeError, setShakeError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
@@ -49,29 +50,30 @@ const Register = () => {
   };
 
   const handleRegister = async () => {
-    try {
-      setLoading(true);
-      setError('');
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
+    try {
       const { name, email, password } = form;
 
       const res = await registerUser({ name, email, password, role });
 
-      if (!res || res.status !== 201) {
-        throw new Error(res?.data?.message || 'Registration failed');
+      if (res.status !== 201) {
+        throw new Error(res.data?.message || 'Registration failed');
       }
 
       const data = res.data || {};
       const voterId = data.voterId || '';
 
-      // SUCCESS - show confirmation
-      alert(`Registered successfully!\nVoter ID: ${voterId}`);
-
-      // REDIRECT TO LOGIN
-      navigate('/login', { replace: true });
+      setSuccess(`Registration successful! Your Voter ID: ${voterId}`);
+      
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 2000);
     } catch (err: any) {
       console.error('Register error:', err);
-      const errorMsg = err?.response?.data?.message || err?.message || 'Something went wrong';
+      const errorMsg = err?.response?.data?.message || err?.message || 'Registration failed. Please try again.';
       setError(errorMsg);
       triggerError(errorMsg);
     } finally {
@@ -132,6 +134,16 @@ const Register = () => {
                   className={`mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center gap-2 text-sm text-destructive ${shakeError ? 'shake-error' : ''}`}
                 >
                   <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                </motion.div>
+              )}
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center gap-2 text-sm text-green-500"
+                >
+                  <CheckCircle className="w-4 h-4 shrink-0" /> {success}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -219,6 +231,7 @@ const Register = () => {
                   onClick={() => {
                     setStep((s) => s - 1);
                     setError('');
+                    setSuccess('');
                   }}
                   disabled={loading}
                   className="flex-1 py-3 rounded-lg glass-card text-foreground font-medium hover:border-primary/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1"
