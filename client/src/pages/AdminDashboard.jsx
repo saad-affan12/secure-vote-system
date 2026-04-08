@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import api from '../api'
+import { createElectionAPI, getElectionsAPI, toggleElectionAPI, addCandidateAPI, getResultsAPI, getVotersAPI } from '../api'
 
 export default function AdminDashboard({ user, onLogout }) {
   const [elections, setElections] = useState([])
   const [voters, setVoters] = useState([])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [candidateName, setCandidateName] = useState('')
   const [candidateParty, setCandidateParty] = useState('')
   const [selectedElection, setSelectedElection] = useState('')
@@ -21,8 +23,8 @@ export default function AdminDashboard({ user, onLogout }) {
     setLoading(true)
     try {
       const [electionsRes, votersRes] = await Promise.all([
-        api.get('/admin/elections'),
-        api.get('/admin/voters')
+        getElectionsAPI(),
+        getVotersAPI()
       ])
       setElections(electionsRes.data.elections || [])
       setVoters(votersRes.data.voters || [])
@@ -45,10 +47,17 @@ export default function AdminDashboard({ user, onLogout }) {
       return
     }
     try {
-      const res = await api.post('/admin/election', { title, description })
+      const res = await createElectionAPI({ 
+        title, 
+        description, 
+        startDate: startDate || null,
+        endDate: endDate || null 
+      })
       showMessage('success', res.data.message)
       setTitle('')
       setDescription('')
+      setStartDate('')
+      setEndDate('')
       await loadElections()
     } catch (err) {
       showMessage('error', err.response?.data?.message || 'Failed to create election')
@@ -57,10 +66,20 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const loadElections = async () => {
     try {
-      const res = await api.get('/admin/elections')
+      const res = await getElectionsAPI()
       setElections(res.data.elections || [])
     } catch (err) {
       console.error('Failed to load elections:', err)
+    }
+  }
+
+  const handleToggleElection = async (electionId) => {
+    try {
+      const res = await toggleElectionAPI(electionId)
+      showMessage('success', res.data.message)
+      await loadElections()
+    } catch (err) {
+      showMessage('error', err.response?.data?.message || 'Failed to toggle election')
     }
   }
 
@@ -71,7 +90,7 @@ export default function AdminDashboard({ user, onLogout }) {
       return
     }
     try {
-      const res = await api.post('/admin/candidate', {
+      const res = await addCandidateAPI({
         electionId: selectedElection,
         name: candidateName,
         party: candidateParty
@@ -86,7 +105,7 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const handleViewResults = async (electionId) => {
     try {
-      const res = await api.get(`/admin/results/${electionId}`)
+      const res = await getResultsAPI(electionId)
       setResults(res.data)
     } catch (err) {
       showMessage('error', err.response?.data?.message || 'Failed to load results')
@@ -137,8 +156,24 @@ export default function AdminDashboard({ user, onLogout }) {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Description (optional)"
                 className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400"
-                rows={3}
+                rows={2}
               />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="datetime-local"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  placeholder="Start Date"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white"
+                />
+                <input
+                  type="datetime-local"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  placeholder="End Date"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white"
+                />
+              </div>
               <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition">
                 Create Election
               </button>
@@ -155,7 +190,7 @@ export default function AdminDashboard({ user, onLogout }) {
               >
                 <option value="">Select Election</option>
                 {elections.map((e) => (
-                  <option key={e.id} value={e.id}>{e.title}</option>
+                  <option key={e.id} value={e.id}>{e.title} {e.isActive ? '(Active)' : '(Inactive)'}</option>
                 ))}
               </select>
               <input
@@ -180,34 +215,58 @@ export default function AdminDashboard({ user, onLogout }) {
         </div>
 
         <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold text-white mb-4">View Results</h2>
+          <h2 className="text-xl font-semibold text-white mb-4">Manage Elections</h2>
           {elections.length === 0 ? (
-            <p className="text-gray-400">Create an election first to view results.</p>
+            <p className="text-gray-400">No elections created yet.</p>
           ) : (
-            <div className="grid md:grid-cols-3 gap-4 mb-6">
+            <div className="space-y-3">
               {elections.map((e) => (
-                <button
-                  key={e.id}
-                  onClick={() => handleViewResults(e.id)}
-                  className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition text-left"
-                >
-                  <h3 className="font-semibold">{e.title}</h3>
-                  {e.description && <p className="text-gray-400 text-sm mt-1">{e.description}</p>}
-                </button>
+                <div key={e.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  <div>
+                    <h3 className="font-semibold text-white">{e.title}</h3>
+                    <p className="text-gray-400 text-sm">
+                      {e.isActive ? 'Active' : 'Inactive'} | 
+                      {e.startDate && ` Starts: ${new Date(e.startDate).toLocaleString()}`}
+                      {e.endDate && ` | Ends: ${new Date(e.endDate).toLocaleString()}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleToggleElection(e.id)}
+                      className={`px-3 py-1 rounded ${e.isActive ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white text-sm`}
+                    >
+                      {e.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      onClick={() => handleViewResults(e.id)}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
+                    >
+                      Results
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           )}
           
           {results && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Results: {results.election.title}</h3>
+            <div className="mt-6 pt-6 border-t border-gray-600">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-white">Results: {results.election?.title}</h3>
+                <button
+                  onClick={() => setResults(null)}
+                  className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded text-sm"
+                >
+                  Close
+                </button>
+              </div>
               <p className="text-gray-400 mb-4">Total Votes: {results.totalVotes}</p>
-              {results.results.length === 0 ? (
+              {results.results?.length === 0 ? (
                 <p className="text-gray-400">No votes yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {results.results.map((r, i) => (
-                    <div key={r.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  {results.results?.map((r, i) => (
+                    <div key={r.id} className="flex items-center justify-between p-4 bg-gray-600 rounded-lg">
                       <div>
                         <span className="font-semibold text-white">{r.name}</span>
                         {r.party && <span className="text-gray-400 ml-2">({r.party})</span>}
@@ -222,23 +281,6 @@ export default function AdminDashboard({ user, onLogout }) {
                   ))}
                 </div>
               )}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold text-white mb-4">All Elections ({elections.length})</h2>
-          {elections.length === 0 ? (
-            <p className="text-gray-400">No elections created yet.</p>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {elections.map((e) => (
-                <div key={e.id} className="p-4 bg-gray-700 rounded-lg">
-                  <h3 className="font-semibold text-white">{e.title}</h3>
-                  {e.description && <p className="text-gray-400 text-sm mt-1">{e.description}</p>}
-                  <p className="text-gray-500 text-xs mt-2">Status: {e.isActive !== false ? 'Active' : 'Inactive'}</p>
-                </div>
-              ))}
             </div>
           )}
         </div>

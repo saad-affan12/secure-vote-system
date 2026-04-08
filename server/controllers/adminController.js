@@ -5,7 +5,7 @@ import Vote from '../models/Vote.js'
 
 export const createElection = async (req, res) => {
   try {
-    const { title, description } = req.body
+    const { title, description, startDate, endDate } = req.body
     
     if (!title) {
       return res.status(400).json({ message: 'Please provide election title' })
@@ -13,8 +13,10 @@ export const createElection = async (req, res) => {
     
     const election = new Election({
       title,
-      description,
-      createdBy: req.user._id
+      description: description || '',
+      createdBy: req.user._id,
+      startDate: startDate ? new Date(startDate) : null,
+      endDate: endDate ? new Date(endDate) : null
     })
     
     await election.save()
@@ -24,7 +26,10 @@ export const createElection = async (req, res) => {
       election: {
         id: election._id,
         title: election.title,
-        description: election.description
+        description: election.description,
+        isActive: election.isActive,
+        startDate: election.startDate,
+        endDate: election.endDate
       }
     })
   } catch (error) {
@@ -43,12 +48,40 @@ export const getElections = async (req, res) => {
         title: e.title,
         description: e.description,
         isActive: e.isActive,
+        startDate: e.startDate,
+        endDate: e.endDate,
         createdAt: e.createdAt
       }))
     })
   } catch (error) {
     console.error('Get elections error:', error)
     return res.status(500).json({ message: 'Failed to fetch elections' })
+  }
+}
+
+export const toggleElectionStatus = async (req, res) => {
+  try {
+    const { electionId } = req.params
+    
+    const election = await Election.findById(electionId)
+    if (!election) {
+      return res.status(404).json({ message: 'Election not found' })
+    }
+    
+    election.isActive = !election.isActive
+    await election.save()
+    
+    return res.status(200).json({
+      message: election.isActive ? 'Election activated' : 'Election deactivated',
+      election: {
+        id: election._id,
+        title: election.title,
+        isActive: election.isActive
+      }
+    })
+  } catch (error) {
+    console.error('Toggle election status error:', error)
+    return res.status(500).json({ message: 'Failed to update election' })
   }
 }
 
@@ -65,9 +98,14 @@ export const addCandidate = async (req, res) => {
       return res.status(404).json({ message: 'Election not found' })
     }
     
+    const existingCandidate = await Candidate.findOne({ electionId, name })
+    if (existingCandidate) {
+      return res.status(400).json({ message: 'Candidate already exists in this election' })
+    }
+    
     const candidate = new Candidate({
       name,
-      party,
+      party: party || '',
       electionId,
       userId: req.user._id
     })
@@ -115,13 +153,20 @@ export const getResults = async (req, res) => {
     
     results.sort((a, b) => b.votes - a.votes)
     
+    const winner = results.length > 0 && results[0].votes > 0 ? results[0] : null
+    
     return res.status(200).json({
       election: {
         id: election._id,
-        title: election.title
+        title: election.title,
+        description: election.description,
+        isActive: election.isActive,
+        startDate: election.startDate,
+        endDate: election.endDate
       },
       results,
-      totalVotes
+      totalVotes,
+      winner
     })
   } catch (error) {
     console.error('Get results error:', error)
@@ -144,5 +189,44 @@ export const getVoters = async (req, res) => {
   } catch (error) {
     console.error('Get voters error:', error)
     return res.status(500).json({ message: 'Failed to fetch voters' })
+  }
+}
+
+export const getElectionCandidates = async (req, res) => {
+  try {
+    const { electionId } = req.params
+    
+    const candidates = await Candidate.find({ electionId })
+    
+    return res.status(200).json({
+      candidates: candidates.map(c => ({
+        id: c._id,
+        name: c.name,
+        party: c.party
+      }))
+    })
+  } catch (error) {
+    console.error('Get candidates error:', error)
+    return res.status(500).json({ message: 'Failed to fetch candidates' })
+  }
+}
+
+export const deleteElection = async (req, res) => {
+  try {
+    const { electionId } = req.params
+    
+    const election = await Election.findById(electionId)
+    if (!election) {
+      return res.status(404).json({ message: 'Election not found' })
+    }
+    
+    await Vote.deleteMany({ electionId })
+    await Candidate.deleteMany({ electionId })
+    await Election.findByIdAndDelete(electionId)
+    
+    return res.status(200).json({ message: 'Election deleted successfully' })
+  } catch (error) {
+    console.error('Delete election error:', error)
+    return res.status(500).json({ message: 'Failed to delete election' })
   }
 }

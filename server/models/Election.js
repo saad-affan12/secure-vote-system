@@ -5,6 +5,8 @@ const electionSchema = new mongoose.Schema({
   description: { type: String },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   isActive: { type: Boolean, default: true },
+  startDate: { type: Date },
+  endDate: { type: Date },
   createdAt: { type: Date, default: Date.now }
 })
 

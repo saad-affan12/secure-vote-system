@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import api from '../api'
+import { getVoterElectionsAPI, getVoterCandidatesAPI, castVoteAPI, getMyVotesAPI } from '../api'
 
 export default function VoterDashboard({ user, onLogout }) {
   const [elections, setElections] = useState([])
@@ -9,6 +9,8 @@ export default function VoterDashboard({ user, onLogout }) {
   const [message, setMessage] = useState({ type: '', text: '' })
   const [loading, setLoading] = useState(true)
   const [voting, setVoting] = useState(false)
+  const [myVotes, setMyVotes] = useState([])
+  const [showMyVotes, setShowMyVotes] = useState(false)
 
   useEffect(() => {
     loadElections()
@@ -17,7 +19,7 @@ export default function VoterDashboard({ user, onLogout }) {
   const loadElections = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/voter/elections')
+      const res = await getVoterElectionsAPI()
       setElections(res.data.elections || [])
     } catch (err) {
       showMessage('error', err.response?.data?.message || 'Failed to load elections')
@@ -28,16 +30,27 @@ export default function VoterDashboard({ user, onLogout }) {
 
   const showMessage = (type, text) => {
     setMessage({ type, text })
-    setTimeout(() => setMessage({ type: '', text: '' }), 4000)
+    setTimeout(() => setMessage({ type: '', text: '' }), 5000)
   }
 
   const handleSelectElection = async (election) => {
+    if (!election.isOpen) {
+      if (!election.isActive) {
+        showMessage('error', 'This election is currently inactive')
+      } else if (election.startDate && new Date(election.startDate) > new Date()) {
+        showMessage('error', 'Voting has not started yet')
+      } else {
+        showMessage('error', 'Voting has ended for this election')
+      }
+      return
+    }
+    
     setSelectedElection(election)
     setSelectedCandidate(null)
     setCandidates([])
     
     try {
-      const res = await api.get(`/voter/candidates/${election.id}`)
+      const res = await getVoterCandidatesAPI(election.id)
       setCandidates(res.data.candidates || [])
     } catch (err) {
       showMessage('error', err.response?.data?.message || 'Failed to load candidates')
@@ -49,7 +62,7 @@ export default function VoterDashboard({ user, onLogout }) {
     
     setVoting(true)
     try {
-      const res = await api.post('/vote', {
+      const res = await castVoteAPI({
         electionId: selectedElection.id,
         candidateId: selectedCandidate.id
       })
@@ -57,11 +70,21 @@ export default function VoterDashboard({ user, onLogout }) {
       setSelectedElection(null)
       setCandidates([])
       setSelectedCandidate(null)
-      loadElections()
+      await loadElections()
     } catch (err) {
       showMessage('error', err.response?.data?.message || 'Failed to cast vote')
     } finally {
       setVoting(false)
+    }
+  }
+
+  const loadMyVotes = async () => {
+    try {
+      const res = await getMyVotesAPI()
+      setMyVotes(res.data.votes || [])
+      setShowMyVotes(true)
+    } catch (err) {
+      showMessage('error', err.response?.data?.message || 'Failed to load vote history')
     }
   }
 
@@ -77,6 +100,12 @@ export default function VoterDashboard({ user, onLogout }) {
           <div className="flex items-center gap-4">
             <span className="text-gray-400">ID: {user?.voterId}</span>
             <span className="text-gray-400">Welcome, {user?.name}</span>
+            <button
+              onClick={loadMyVotes}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+            >
+              My Votes
+            </button>
             <button
               onClick={onLogout}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
@@ -106,7 +135,8 @@ export default function VoterDashboard({ user, onLogout }) {
               <div
                 key={election.id}
                 className={`bg-gray-800 rounded-xl p-6 border ${
-                  election.hasVoted ? 'border-green-500/50' : 'border-gray-700'
+                  election.hasVoted ? 'border-green-500/50' : 
+                  election.isOpen ? 'border-blue-500/50' : 'border-gray-700'
                 }`}
               >
                 <h3 className="text-lg font-semibold text-white mb-2">{election.title}</h3>
@@ -114,17 +144,27 @@ export default function VoterDashboard({ user, onLogout }) {
                   <p className="text-gray-400 text-sm mb-4">{election.description}</p>
                 )}
                 
-                {election.hasVoted ? (
-                  <div className="flex items-center gap-2 text-green-400">
-                    <span className="text-xl">&#10003;</span>
-                    <span className="font-medium">Vote Submitted</span>
-                  </div>
-                ) : (
+                <div className="text-sm mb-4">
+                  {election.hasVoted ? (
+                    <span className="text-green-400">✓ Vote Submitted</span>
+                  ) : election.isOpen ? (
+                    <span className="text-blue-400">● Voting Open</span>
+                  ) : (
+                    <span className="text-red-400">○ Voting Closed</span>
+                  )}
+                </div>
+                
+                {!election.hasVoted && (
                   <button
                     onClick={() => handleSelectElection(election)}
-                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition"
+                    disabled={!election.isOpen}
+                    className={`w-full py-2 rounded-lg font-medium transition ${
+                      election.isOpen 
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    }`}
                   >
-                    View Candidates
+                    {election.isOpen ? 'View Candidates' : 'Not Available'}
                   </button>
                 )}
               </div>
@@ -135,9 +175,12 @@ export default function VoterDashboard({ user, onLogout }) {
         {selectedElection && (
           <div className="mt-8 bg-gray-800 rounded-xl p-6 border border-gray-700">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-white">
-                Candidates for: {selectedElection.title}
-              </h3>
+              <div>
+                <h3 className="text-xl font-semibold text-white">
+                  Candidates for: {selectedElection.title}
+                </h3>
+                <p className="text-gray-400 text-sm mt-1">Select a candidate to vote</p>
+              </div>
               <button
                 onClick={() => {
                   setSelectedElection(null)
@@ -172,7 +215,7 @@ export default function VoterDashboard({ user, onLogout }) {
                         )}
                       </div>
                       {selectedCandidate?.id === candidate.id && (
-                        <span className="text-blue-400 text-xl">&#10003;</span>
+                        <span className="text-blue-400 text-xl">✓</span>
                       )}
                     </div>
                   </div>
@@ -189,6 +232,40 @@ export default function VoterDashboard({ user, onLogout }) {
                 >
                   {voting ? 'Submitting Vote...' : `Vote for ${selectedCandidate.name}`}
                 </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {showMyVotes && (
+          <div className="mt-8 bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">My Vote History</h3>
+              <button
+                onClick={() => setShowMyVotes(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition"
+              >
+                Close
+              </button>
+            </div>
+            
+            {myVotes.length === 0 ? (
+              <p className="text-gray-400">You haven't voted in any elections yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {myVotes.map((vote) => (
+                  <div key={vote.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                    <div>
+                      <p className="text-white font-medium">{vote.electionTitle}</p>
+                      <p className="text-gray-400 text-sm">
+                        Voted for: {vote.candidateName} {vote.candidateParty && `(${vote.candidateParty})`}
+                      </p>
+                    </div>
+                    <p className="text-gray-400 text-sm">
+                      {new Date(vote.votedAt).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
