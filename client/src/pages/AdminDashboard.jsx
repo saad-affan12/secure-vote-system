@@ -35,7 +35,7 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const showMessage = (type, text) => {
     setMessage({ type, text })
-    setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+    setTimeout(() => setMessage({ type: '', text: '' }), 4000)
   }
 
   const handleCreateElection = async (e) => {
@@ -49,9 +49,18 @@ export default function AdminDashboard({ user, onLogout }) {
       showMessage('success', res.data.message)
       setTitle('')
       setDescription('')
-      loadData()
+      await loadElections()
     } catch (err) {
       showMessage('error', err.response?.data?.message || 'Failed to create election')
+    }
+  }
+
+  const loadElections = async () => {
+    try {
+      const res = await api.get('/admin/elections')
+      setElections(res.data.elections || [])
+    } catch (err) {
+      console.error('Failed to load elections:', err)
     }
   }
 
@@ -172,39 +181,47 @@ export default function AdminDashboard({ user, onLogout }) {
 
         <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
           <h2 className="text-xl font-semibold text-white mb-4">View Results</h2>
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
-            {elections.map((e) => (
-              <button
-                key={e.id}
-                onClick={() => handleViewResults(e.id)}
-                className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition text-left"
-              >
-                <h3 className="font-semibold">{e.title}</h3>
-                {e.description && <p className="text-gray-400 text-sm mt-1">{e.description}</p>}
-              </button>
-            ))}
-          </div>
+          {elections.length === 0 ? (
+            <p className="text-gray-400">Create an election first to view results.</p>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-4 mb-6">
+              {elections.map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => handleViewResults(e.id)}
+                  className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition text-left"
+                >
+                  <h3 className="font-semibold">{e.title}</h3>
+                  {e.description && <p className="text-gray-400 text-sm mt-1">{e.description}</p>}
+                </button>
+              ))}
+            </div>
+          )}
           
           {results && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold text-white mb-4">Results: {results.election.title}</h3>
               <p className="text-gray-400 mb-4">Total Votes: {results.totalVotes}</p>
-              <div className="space-y-3">
-                {results.results.map((r, i) => (
-                  <div key={r.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div>
-                      <span className="font-semibold text-white">{r.name}</span>
-                      {r.party && <span className="text-gray-400 ml-2">({r.party})</span>}
+              {results.results.length === 0 ? (
+                <p className="text-gray-400">No votes yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {results.results.map((r, i) => (
+                    <div key={r.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                      <div>
+                        <span className="font-semibold text-white">{r.name}</span>
+                        {r.party && <span className="text-gray-400 ml-2">({r.party})</span>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {i === 0 && r.votes > 0 && (
+                          <span className="px-2 py-1 bg-yellow-500 text-black text-xs font-bold rounded">WINNER</span>
+                        )}
+                        <span className="text-white font-mono">{r.votes} votes</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {i === 0 && r.votes > 0 && (
-                        <span className="px-2 py-1 bg-yellow-500 text-black text-xs font-bold rounded">WINNER</span>
-                      )}
-                      <span className="text-white font-mono">{r.votes} votes</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -219,7 +236,7 @@ export default function AdminDashboard({ user, onLogout }) {
                 <div key={e.id} className="p-4 bg-gray-700 rounded-lg">
                   <h3 className="font-semibold text-white">{e.title}</h3>
                   {e.description && <p className="text-gray-400 text-sm mt-1">{e.description}</p>}
-                  <p className="text-gray-500 text-xs mt-2">Status: {e.isActive ? 'Active' : 'Inactive'}</p>
+                  <p className="text-gray-500 text-xs mt-2">Status: {e.isActive !== false ? 'Active' : 'Inactive'}</p>
                 </div>
               ))}
             </div>
@@ -228,14 +245,18 @@ export default function AdminDashboard({ user, onLogout }) {
 
         <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
           <h2 className="text-xl font-semibold text-white mb-4">Registered Voters ({voters.length})</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {voters.slice(0, 12).map((v) => (
-              <div key={v.id} className="p-3 bg-gray-700 rounded-lg">
-                <p className="text-white font-medium">{v.name}</p>
-                <p className="text-gray-400 text-sm">{v.voterId}</p>
-              </div>
-            ))}
-          </div>
+          {voters.length === 0 ? (
+            <p className="text-gray-400">No voters registered yet.</p>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {voters.slice(0, 12).map((v) => (
+                <div key={v.id} className="p-3 bg-gray-700 rounded-lg">
+                  <p className="text-white font-medium">{v.name}</p>
+                  <p className="text-gray-400 text-sm">{v.voterId}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
