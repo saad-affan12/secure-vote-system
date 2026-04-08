@@ -67,37 +67,47 @@ const VoteProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }
   const fetchVoterElections = useCallback(async () => {
     if (!user || user.role !== 'voter') return;
 
-    const token = localStorage.getItem('vote_token') || undefined;
-    const res = await voterElections(token);
-    const data = res?.data || {};
-    const allElections = data.elections || [];
+    try {
+      const token = localStorage.getItem('vote_token') || undefined;
+      const res = await voterElections(token);
+      
+      if (res.status !== 200) {
+        console.error('Failed to fetch elections:', res.data?.message);
+        return;
+      }
+      
+      const data = res?.data || {};
+      const allElections = data.elections || [];
 
-    setElections(allElections);
-    setEvents(allElections.map((el: any): EventItem => ({
-      id: el.id,
-      title: el.title,
-      description: el.description,
-      startDate: el.startDate ?? el.start_date,
-      endDate: el.endDate ?? el.end_date,
-      candidates: normalizeCandidates(el.candidates || []),
-    })));
+      setElections(allElections);
+      setEvents(allElections.map((el: any): EventItem => ({
+        id: el.id,
+        title: el.title,
+        description: el.description,
+        startDate: el.startDate ?? el.start_date,
+        endDate: el.endDate ?? el.end_date,
+        candidates: normalizeCandidates(el.candidates || []),
+      })));
 
-    const counts: Record<string, number> = {};
-    for (const election of allElections) {
-      const normalizedCandidates = normalizeCandidates(election.candidates || []);
-      for (const candidate of normalizedCandidates) counts[candidate.id] = candidate.votes || 0;
+      const counts: Record<string, number> = {};
+      for (const election of allElections) {
+        const normalizedCandidates = normalizeCandidates(election.candidates || []);
+        for (const candidate of normalizedCandidates) counts[candidate.id] = candidate.votes || 0;
+      }
+      setVoteCounts(counts);
+
+      if (allElections.length > 0) {
+        setCandidates(normalizeCandidates(allElections[0].candidates || []));
+      } else {
+        setCandidates([]);
+      }
+
+      const userVotes = data.userVotes || {};
+      setUserVotesByElection(userVotes);
+      setHasVoted(false);
+    } catch (err) {
+      console.error('Failed to fetch elections:', err);
     }
-    setVoteCounts(counts);
-
-    if (allElections.length > 0) {
-      setCandidates(normalizeCandidates(allElections[0].candidates || []));
-    } else {
-      setCandidates([]);
-    }
-
-    const userVotes = data.userVotes || {};
-    setUserVotesByElection(userVotes);
-    setHasVoted(false);
   }, [setEvents, user]);
 
   useEffect(() => {
@@ -148,24 +158,30 @@ const VoteProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }
   }, []);
 
   const castVote = useCallback(async (electionId: string | number, candidateId: string) => {
-    if (userVotesByElection[String(electionId)] || isVotingLocked) return false;
+    const electionIdStr = String(electionId);
+    if (userVotesByElection[electionIdStr] || isVotingLocked) {
+      toast.error('Voting is locked or you have already voted');
+      return false;
+    }
     try {
       const token = localStorage.getItem('vote_token') || undefined;
-      const res = await apiCastVote({ electionId, candidateId }, token as string | undefined);
+      const res = await apiCastVote({ electionId: electionIdStr, candidateId }, token as string | undefined);
+      
       if (res?.status === 201 || res?.status === 200) {
         setHasVoted(true);
-        setUserVotesByElection(prev => ({ ...prev, [String(electionId)]: true }));
+        setUserVotesByElection(prev => ({ ...prev, [electionIdStr]: true }));
         setVotedFor(candidateId);
-        setVoteId(res.data?.id || null);
+        setVoteId(res.data?.voteId || res.data?.id || null);
         setVoteCounts(prev => ({ ...prev, [candidateId]: (prev[candidateId] || 0) + 1 }));
-        toast.success('Vote submitted');
+        toast.success(res.data?.message || 'Vote submitted successfully');
         return true;
       }
+      
+      toast.error(res?.data?.message || 'Failed to submit vote');
       return false;
     } catch (err: any) {
-      // eslint-disable-next-line no-console
       console.error('castVote error', err);
-      toast.error(err?.response?.data?.message || 'Failed to submit vote');
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to submit vote');
       return false;
     }
   }, [isVotingLocked, userVotesByElection]);

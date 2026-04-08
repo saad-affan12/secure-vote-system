@@ -71,11 +71,11 @@ const VotingDashboard = () => {
 
   const [selected, setSelected] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [activeElection, setActiveElection] = useState<number | null>(null);
-  const [expandedElection, setExpandedElection] = useState<number | null>(null);
-  const [candidateLists, setCandidateLists] = useState<Record<number, Candidate[]>>({});
-  const [candidateErrors, setCandidateErrors] = useState<Record<number, string | null>>({});
-  const [loadingElection, setLoadingElection] = useState<number | null>(null);
+  const [activeElection, setActiveElection] = useState<string | null>(null);
+  const [expandedElection, setExpandedElection] = useState<string | null>(null);
+  const [candidateLists, setCandidateLists] = useState<Record<string, Candidate[]>>({});
+  const [candidateErrors, setCandidateErrors] = useState<Record<string, string | null>>({});
+  const [loadingElection, setLoadingElection] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -124,8 +124,7 @@ const VotingDashboard = () => {
   };
 
   const handleToggleCandidates = async (eventItem: typeof events[number]) => {
-    const electionId = Number(eventItem.id);
-    if (!Number.isFinite(electionId)) return;
+    const electionId = String(eventItem.id);
 
     if (expandedElection === electionId) {
       setExpandedElection(null);
@@ -139,7 +138,7 @@ const VotingDashboard = () => {
     setActiveElection(electionId);
     setSelected(null);
 
-    if (Object.prototype.hasOwnProperty.call(candidateLists, electionId) && !candidateErrors[electionId]) {
+    if (candidateLists[electionId] && !candidateErrors[electionId]) {
       setBallotCandidates(candidateLists[electionId]);
       return;
     }
@@ -155,7 +154,7 @@ const VotingDashboard = () => {
     try {
       setLoadingElection(electionId);
       const token = localStorage.getItem('vote_token') || undefined;
-      const res = await voterCandidates(String(electionId), token);
+      const res = await voterCandidates(electionId, token);
       const nextCandidates = normalizeCandidates((res.data?.candidates || []) as CandidateApiResponse[]);
 
       setCandidateLists((prev) => ({ ...prev, [electionId]: nextCandidates }));

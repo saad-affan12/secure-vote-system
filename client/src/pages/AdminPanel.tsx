@@ -57,11 +57,11 @@ const AdminPanel = () => {
 
   // Admin forms/state
   const [electionsList, setElectionsList] = useState<any[]>([])
-  const [selectedElection, setSelectedElection] = useState<number | null>(null)
+  const [selectedElection, setSelectedElection] = useState<string | null>(null)
   const [candParty, setCandParty] = useState('')
   const [usersList, setUsersList] = useState<any[]>([])
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
-  const [resultsElectionId, setResultsElectionId] = useState<number | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [resultsElectionId, setResultsElectionId] = useState<string | null>(null)
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(true)
 
   const [evTitle, setEvTitle] = useState('')
@@ -70,14 +70,25 @@ const AdminPanel = () => {
   const [evEnd, setEvEnd] = useState('')
 
   const loadElections = async () => {
-    const token = localStorage.getItem('vote_token') || undefined
-    const res = await adminElections(token as string | undefined)
+    try {
+      const token = localStorage.getItem('vote_token') || undefined
+      const res = await adminElections(token as string | undefined)
+      
+      if (res.status !== 200) {
+        toast.error(res.data?.message || 'Failed to load elections');
+        return;
+      }
+      
       const data = res?.data || {}
       const elections = data.elections || []
       setElectionsList(elections)
       setEvents(elections.map(mapElectionToEvent))
       setResultsElectionId((prev) => prev ?? elections[0]?.id ?? null)
       setSelectedElection((prev) => prev ?? elections[0]?.id ?? null)
+    } catch (err: any) {
+      console.error('Failed to load elections:', err);
+      toast.error(err?.response?.data?.message || 'Failed to load elections');
+    }
   }
 
   const handleAddCandidate = async () => {
@@ -87,17 +98,23 @@ const AdminPanel = () => {
     }
     try {
       const token = localStorage.getItem('vote_token') || undefined
-      await addCandidate({ electionId: selectedElection, userId: selectedUserId, party: candParty }, token)
-      setSelectedUserId(null); setCandParty('')
-      toast.success('Candidate added successfully');
+      const res = await addCandidate({ electionId: selectedElection, userId: selectedUserId, party: candParty }, token)
+      
+      if (res.status === 201) {
+        setSelectedUserId(null);
+        setCandParty('');
+        toast.success(res.data?.message || 'Candidate added successfully');
+      } else {
+        toast.error(res.data?.message || 'Failed to add candidate');
+      }
     } catch (err: any) {
-      console.error(err)
+      console.error(err);
       toast.error(err?.response?.data?.message || 'Failed to add candidate');
     }
   }
 
   const [results, setResults] = useState<ResultRow[]>([])
-  const loadResults = async (eid?: number | null) => {
+  const loadResults = async (eid?: string | null) => {
     if (!eid) {
       setResults([])
       return
@@ -105,10 +122,17 @@ const AdminPanel = () => {
     try {
       const token = localStorage.getItem('vote_token') || undefined
       const res = await adminResults(eid, token)
-      setResults(res.data.results || [])
+      
+      if (res.status === 200) {
+        setResults(res.data.results || [])
+      } else {
+        toast.error(res.data?.message || 'Failed to load results');
+        setResults([]);
+      }
     } catch (err: any) {
-      console.error(err)
-      toast.error(err?.response?.data?.message || 'Failed to load results')
+      console.error(err);
+      toast.error(err?.response?.data?.message || 'Failed to load results');
+      setResults([]);
     }
   }
 
@@ -273,12 +297,14 @@ const AdminPanel = () => {
 
                 <button
                   onClick={() => {
-                    if (!declareResults && !resultsElectionId && electionsList.length === 0) {
-                      toast.error('Create an election first');
-                      return;
-                    }
-                    if (!declareResults && !resultsElectionId && electionsList[0]?.id) {
-                      setResultsElectionId(electionsList[0].id)
+                    if (!declareResults) {
+                      if (!resultsElectionId && electionsList.length === 0) {
+                        toast.error('Create an election first');
+                        return;
+                      }
+                      if (!resultsElectionId && electionsList[0]?.id) {
+                        setResultsElectionId(String(electionsList[0].id))
+                      }
                     }
                     setDeclareResults(!declareResults)
                   }}
@@ -305,11 +331,11 @@ const AdminPanel = () => {
                 {/* Add Candidate */}
                 <div className="glass-card p-4">
                   <h3 className="font-medium mb-2">Add Candidate</h3>
-                  <select aria-label="Select election" title="Select election" value={selectedElection || ''} onChange={e => setSelectedElection(Number(e.target.value) || null)} className="w-full mb-2 px-3 py-2 rounded text-black">
+                  <select aria-label="Select election" title="Select election" value={selectedElection || ''} onChange={e => setSelectedElection(e.target.value || null)} className="w-full mb-2 px-3 py-2 rounded text-black">
                     <option value="">Select election</option>
                     {electionsList.map(el => <option key={el.id} value={el.id}>{el.title}</option>)}
                   </select>
-                  <select aria-label="Select user" title="Select user" value={selectedUserId || ''} onChange={e => setSelectedUserId(Number(e.target.value) || null)} className="w-full mb-2 px-3 py-2 rounded text-black">
+                  <select aria-label="Select user" title="Select user" value={selectedUserId || ''} onChange={e => setSelectedUserId(e.target.value || null)} className="w-full mb-2 px-3 py-2 rounded text-black">
                     <option value="">Select registered user</option>
                     {usersList.map(u => <option key={u.id} value={u.id}>{u.name} — {u.email}</option>)}
                   </select>
@@ -321,7 +347,7 @@ const AdminPanel = () => {
                 <div className="glass-card p-4">
                   <h3 className="font-medium mb-2">View Results</h3>
                   <select aria-label="Select election results" title="Select election results" value={resultsElectionId || ''} onChange={e => {
-                    const nextElectionId = Number(e.target.value) || null
+                    const nextElectionId = e.target.value || null
                     setResultsElectionId(nextElectionId)
                     void loadResults(nextElectionId)
                   }} className="w-full mb-2 px-3 py-2 rounded text-black">

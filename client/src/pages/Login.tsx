@@ -34,12 +34,11 @@ const Login = () => {
       const res = await login(email, password, role);
       setLoading(false);
       if (!res.success) return triggerError(res.message || 'Invalid credentials');
-      // on success redirect based on selected role
       if (role === 'admin') navigate('/admin')
       else navigate('/vote')
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      return triggerError('Login failed')
+      return triggerError(err?.message || 'Login failed. Please try again.')
     }
   };
 

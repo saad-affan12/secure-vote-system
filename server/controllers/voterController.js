@@ -6,10 +6,64 @@ import User from '../models/User.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change_me'
 
+async function requireVoter(req, res, next) {
+  try {
+    const auth = req.headers.authorization
+    if (!auth || !auth.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Unauthorized - No token provided' })
+    }
+    
+    const token = auth.split(' ')[1]
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized - Invalid token format' })
+    }
+    
+    const decoded = jwt.verify(token, JWT_SECRET)
+    const userId = decoded.userId
+    const user = await User.findById(userId).lean()
+    
+    if (!user || user.role !== 'voter') {
+      return res.status(403).json({ message: 'Forbidden - Voter access required' })
+    }
+    
+    req.user = user
+    req.userId = userId
+    next()
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Unauthorized - Invalid or expired token' })
+    }
+    console.error('Voter auth error:', err)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+async function optionalVoter(req, res, next) {
+  try {
+    const auth = req.headers.authorization
+    if (auth && auth.startsWith('Bearer ')) {
+      const token = auth.split(' ')[1]
+      if (token) {
+        const decoded = jwt.verify(token, JWT_SECRET)
+        const userId = decoded.userId
+        const user = await User.findById(userId).lean()
+        if (user && user.role === 'voter') {
+          req.user = user
+          req.userId = userId
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore errors in optional auth
+  }
+  next()
+}
+
 export async function getElectionsForVoter(req, res) {
   try {
     const elections = await Election.find().sort({ created_at: -1 }).lean()
     const result = []
+    
     for (const el of elections) {
       const cands = await Candidate.find({ election_id: el._id }).populate('user_id').lean()
       const map = {}
@@ -80,13 +134,24 @@ export async function submitVote(req, res) {
     if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 
     const { electionId, candidateId } = req.body || {}
-    if (!electionId || !candidateId) return res.status(400).json({ message: 'Missing fields' })
+    if (!electionId || !candidateId) return res.status(400).json({ message: 'Missing electionId or candidateId' })
 
     const existing = await Vote.findOne({ user_id: userId, election_id: electionId })
-    if (existing) return res.status(409).json({ message: 'Already voted' })
+    if (existing) return res.status(409).json({ message: 'You have already voted in this election' })
 
     const candidate = await Candidate.findOne({ _id: candidateId, election_id: electionId })
     if (!candidate) return res.status(404).json({ message: 'Candidate not found for this election' })
+
+    const election = await Election.findById(electionId)
+    if (!election) return res.status(404).json({ message: 'Election not found' })
+
+    const now = new Date()
+    if (election.start_date && new Date(election.start_date) > now) {
+      return res.status(400).json({ message: 'Election has not started yet' })
+    }
+    if (election.end_date && new Date(election.end_date) < now) {
+      return res.status(400).json({ message: 'Election has ended' })
+    }
 
     const vote = new Vote({ user_id: userId, candidate_id: candidateId, election_id: electionId })
     await vote.save()
@@ -94,12 +159,18 @@ export async function submitVote(req, res) {
     try {
       await User.findByIdAndUpdate(userId, { hasVoted: true })
     } catch (e) {
-      // non-critical
+      console.warn('Failed to update user hasVoted:', e)
     }
 
-    return res.status(201).json({ message: 'Vote recorded', id: String(vote._id) })
+    return res.status(201).json({ 
+      message: 'Vote recorded successfully', 
+      id: String(vote._id),
+      voteId: String(vote._id)
+    })
   } catch (err) {
     console.error('submitVote error', err)
     return res.status(500).json({ message: 'Internal server error' })
   }
 }
+
+export { requireVoter, optionalVoter }

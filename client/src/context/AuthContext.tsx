@@ -9,7 +9,7 @@ interface User {
   hasVoted: boolean;
 }
 
-  interface AuthContextType {
+interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string, role: 'voter' | 'admin') => Promise<{ success: boolean; message?: string }>;
@@ -33,10 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = useCallback(async (data: { name: string; email: string; password: string }) => {
     try {
-      const res = await (await import('../services/api')).registerUser(data)
-      return res.status === 201 || res.status === 200
+      const { registerUser } = await import('../services/api')
+      const res = await registerUser(data)
+      return res.status === 201
     } catch (err: any) {
-      throw new Error(err?.response?.data?.message || 'Registration failed')
+      throw new Error(err?.response?.data?.message || err?.message || 'Registration failed')
     }
   }, []);
 
@@ -44,14 +45,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { loginUser } = await import('../services/api')
       const res = await loginUser({ email, password })
+      
       if (res.status === 200 && res.data?.token) {
         localStorage.setItem('vote_token', res.data.token)
         const received = res.data.user || {}
         const serverRole = (received.role as string || 'voter').toString().trim().toLowerCase()
         const requestedRole = String(role).trim().toLowerCase()
+        
         if (serverRole !== requestedRole) {
           localStorage.removeItem('vote_token')
-          return { success: false, message: 'You are not allowed to login' }
+          return { success: false, message: `You are registered as ${serverRole}, not ${requestedRole}` }
         }
 
         const userObj: User = {
@@ -66,9 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('vote_user', JSON.stringify(userObj))
         return { success: true }
       }
-      return { success: false }
+      
+      return { success: false, message: res.data?.message || 'Login failed' }
     } catch (err: any) {
-      return { success: false, message: err?.response?.data?.message || 'Login failed' }
+      return { success: false, message: err?.response?.data?.message || err?.message || 'Login failed. Please check your credentials.' }
     }
   }, []);
 
