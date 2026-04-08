@@ -16,3 +16,6 @@ api.interceptors.request.use((config) => {
 })
 
 export default api
+
+export const adminLoginAPI = (data) => api.post('/auth/admin-login', data)
+export const voterLoginAPI = (data) => api.post('/auth/voter-login', data)
