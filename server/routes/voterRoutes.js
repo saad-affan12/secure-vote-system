@@ -1,9 +1,11 @@
 import express from 'express'
-import { getElectionsForVoter, getCandidatesForElection, requireVoter, optionalVoter } from '../controllers/voterController.js'
+import { voterMiddleware } from '../middleware/authMiddleware.js'
+import { getElections, getCandidates, getMyVotes } from '../controllers/voterController.js'
 
 const router = express.Router()
 
-router.get('/elections', optionalVoter, getElectionsForVoter)
-router.get('/candidates/:electionId', requireVoter, getCandidatesForElection)
+router.get('/elections', voterMiddleware, getElections)
+router.get('/candidates/:electionId', voterMiddleware, getCandidates)
+router.get('/my-votes', voterMiddleware, getMyVotes)
 
 export default router

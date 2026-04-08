@@ -1,24 +1,31 @@
-import axios from 'axios'
-import { API_URL } from '../config/api'
+import { authAPI, adminAPI, voterAPI, voteAPI } from '../api/index'
 
-const API = axios.create({
-  baseURL: API_URL,
-  validateStatus: () => true,
-})
+export const registerUser = (data: { name: string; email: string; password: string; role?: string }) => 
+  authAPI.register(data)
 
-export const registerUser = (data: any) => API.post('/auth/register', data)
-export const loginUser = (data: any) => API.post('/auth/login', data)
+export const loginUser = (data: { email: string; password: string }) => 
+  authAPI.login(data)
 
-export default API
+export const createElection = (data: { title: string; description?: string }, token?: string) => {
+  if (token) {
+    return adminAPI.createElection(data)
+  }
+  return adminAPI.createElection(data)
+}
 
-// Admin endpoints
-export const createElection = (data: any, token?: string) => API.post('/admin/create-election', data, { headers: { Authorization: `Bearer ${token}` } })
-export const addCandidate = (data: any, token?: string) => API.post('/admin/add-candidate', data, { headers: { Authorization: `Bearer ${token}` } })
-export const adminElections = (token?: string) => API.get('/admin/elections', { headers: { Authorization: `Bearer ${token}` } })
-export const adminResults = (electionId: string | number, token?: string) => API.get(`/admin/results/${electionId}`, { headers: { Authorization: `Bearer ${token}` } })
-export const adminUsers = (token?: string) => API.get('/admin/users', { headers: { Authorization: `Bearer ${token}` } })
+export const adminElections = () => adminAPI.getElections()
 
-// Voter endpoints
-export const voterElections = (token?: string) => API.get('/voter/elections', { headers: { Authorization: `Bearer ${token}` } })
-export const castVote = (data: any, token?: string) => API.post('/vote', data, { headers: { Authorization: `Bearer ${token}` } })
-export const voterCandidates = (electionId: string, token?: string) => API.get(`/voter/candidates/${electionId}`, { headers: { Authorization: `Bearer ${token}` } })
+export const addCandidate = (data: { electionId: string; userId: string; party?: string }, token?: string) =>
+  adminAPI.addCandidate(data)
+
+export const adminResults = (electionId: string, token?: string) =>
+  adminAPI.getResults(electionId)
+
+export const adminUsers = () => adminAPI.getVoters()
+
+export const voterElections = (token?: string) => voterAPI.getElections()
+
+export const voterCandidates = (electionId: string, token?: string) => voterAPI.getCandidates(electionId)
+
+export const castVote = (data: { electionId: string; candidateId: string }, token?: string) =>
+  voteAPI.castVote(data)
