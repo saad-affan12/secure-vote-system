@@ -17,34 +17,12 @@ const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
 
-// CORS - Allow frontend URLs (Vercel, localhost)
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://localhost",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:3000",
-  // Add your Vercel frontend URL here
-  // "https://your-vercel-domain.vercel.app"
-];
-
+// CORS - Allow all origins (for Vercel + localhost)
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        // In production, you might want to reject unknown origins
-        console.warn(`CORS request from unauthorized origin: ${origin}`);
-        // For now, allow it for development
-        callback(null, true);
-      }
-    },
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true,
+    credentials: false,
     optionsSuccessStatus: 200,
   })
 );

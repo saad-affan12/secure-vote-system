@@ -59,21 +59,21 @@ const Register = () => {
 
       const res = await registerUser({ name, email, password, role });
 
-      if (res.status !== 201) {
-        throw new Error(res.data?.message || 'Registration failed');
+      if (res.status === 201) {
+        const data = res.data || {};
+        const voterId = data.voterId || '';
+        setSuccess(`Registration successful! Your Voter ID: ${voterId}`);
+        setTimeout(() => {
+          navigate('/login', { replace: true });
+        }, 2000);
+      } else {
+        const errorMsg = res.data?.message || `Registration failed (${res.status})`;
+        setError(errorMsg);
+        triggerError(errorMsg);
       }
-
-      const data = res.data || {};
-      const voterId = data.voterId || '';
-
-      setSuccess(`Registration successful! Your Voter ID: ${voterId}`);
-      
-      setTimeout(() => {
-        navigate('/login', { replace: true });
-      }, 2000);
     } catch (err: any) {
       console.error('Register error:', err);
-      const errorMsg = err?.response?.data?.message || err?.message || 'Registration failed. Please try again.';
+      const errorMsg = err?.message || 'Network error. Please try again.';
       setError(errorMsg);
       triggerError(errorMsg);
     } finally {

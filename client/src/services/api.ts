@@ -3,6 +3,7 @@ import { API_URL } from '../config/api'
 
 const API = axios.create({
   baseURL: API_URL,
+  validateStatus: () => true,
 })
 
 export const registerUser = (data: any) => API.post('/auth/register', data)
