@@ -93,13 +93,16 @@ export default function VoterDashboard({ user, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen">
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+    <div className="min-h-screen bg-gray-900">
+      <nav className="bg-blue-900 border-b border-blue-700 px-6 py-4">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
-          <h1 className="text-xl font-bold text-white">Voter Dashboard</h1>
+          <div>
+            <h1 className="text-xl font-bold text-white">🗳️ Voter Dashboard</h1>
+            <p className="text-blue-300 text-sm">Cast your vote securely</p>
+          </div>
           <div className="flex items-center gap-4">
-            <span className="text-gray-400">ID: {user?.voterId}</span>
-            <span className="text-gray-400">Welcome, {user?.name}</span>
+            <span className="text-blue-300">ID: {user?.voterId}</span>
+            <span className="text-blue-300">Welcome, {user?.name}</span>
             <button
               onClick={loadMyVotes}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
@@ -123,11 +126,12 @@ export default function VoterDashboard({ user, onLogout }) {
           </div>
         )}
 
-        <h2 className="text-2xl font-bold text-white mb-6">Available Elections</h2>
+        <h2 className="text-2xl font-bold text-white mb-6">🗳️ Available Elections</h2>
         
         {elections.length === 0 ? (
-          <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 text-center">
+          <div className="bg-gray-800 rounded-xl p-8 border border-blue-600 text-center">
             <p className="text-gray-400">No elections available at the moment.</p>
+            <p className="text-blue-400 text-sm mt-2">Check back later for upcoming elections.</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -148,9 +152,9 @@ export default function VoterDashboard({ user, onLogout }) {
                   {election.hasVoted ? (
                     <span className="text-green-400">✓ Vote Submitted</span>
                   ) : election.isOpen ? (
-                    <span className="text-blue-400">● Voting Open</span>
+                    <span className="text-blue-400">🟢 Voting Open</span>
                   ) : (
-                    <span className="text-red-400">○ Voting Closed</span>
+                    <span className="text-red-400">🔴 Voting Closed</span>
                   )}
                 </div>
                 
@@ -173,13 +177,13 @@ export default function VoterDashboard({ user, onLogout }) {
         )}
 
         {selectedElection && (
-          <div className="mt-8 bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="mt-8 bg-gray-800 rounded-xl p-6 border border-blue-600">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="text-xl font-semibold text-white">
-                  Candidates for: {selectedElection.title}
+                  Ballot for: {selectedElection.title}
                 </h3>
-                <p className="text-gray-400 text-sm mt-1">Select a candidate to vote</p>
+                <p className="text-blue-300 text-sm mt-1">Select a candidate to cast your vote</p>
               </div>
               <button
                 onClick={() => {
@@ -204,7 +208,7 @@ export default function VoterDashboard({ user, onLogout }) {
                     className={`p-4 rounded-lg border cursor-pointer transition ${
                       selectedCandidate?.id === candidate.id
                         ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-gray-700 bg-gray-700/50 hover:border-gray-600'
+                        : 'border-gray-700 bg-gray-700/50 hover:border-blue-500/50'
                     }`}
                   >
                     <div className="flex justify-between items-center">

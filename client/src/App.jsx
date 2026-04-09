@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react'
 import api from './api'
 import axios from 'axios'
 
+import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AdminDashboard from './pages/AdminDashboard'
 import VoterDashboard from './pages/VoterDashboard'
+import AIAssistant from './components/AIAssistant'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
@@ -80,6 +82,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={
+          user ? <Navigate to={user.role === 'admin' ? '/admin' : '/vote'} /> : <Home />
+        } />
         <Route path="/login" element={
           user?.role === 'voter' ? <Navigate to="/vote" /> : 
           user?.role === 'admin' ? <Navigate to="/admin" /> : <Login />
@@ -97,9 +102,9 @@ function App() {
         <Route path="/vote" element={
           user?.role === 'voter' ? <VoterDashboard user={user} onLogout={logout} /> : <Navigate to="/login" />
         } />
-        <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/vote') : '/login'} />} />
-        <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <AIAssistant />
     </BrowserRouter>
   )
 }

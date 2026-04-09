@@ -117,12 +117,15 @@ export default function AdminDashboard({ user, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen">
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+    <div className="min-h-screen bg-gray-900">
+      <nav className="bg-yellow-900 border-b border-yellow-600 px-6 py-4">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
-          <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
+          <div>
+            <h1 className="text-xl font-bold text-white">🔐 Admin Dashboard</h1>
+            <p className="text-yellow-300 text-sm">Manage elections and candidates</p>
+          </div>
           <div className="flex items-center gap-4">
-            <span className="text-gray-400">Welcome, {user?.name}</span>
+            <span className="text-yellow-300">Welcome, {user?.name}</span>
             <button
               onClick={onLogout}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
@@ -141,7 +144,7 @@ export default function AdminDashboard({ user, onLogout }) {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="bg-gray-800 rounded-xl p-6 border border-yellow-600">
             <h2 className="text-xl font-semibold text-white mb-4">Create Election</h2>
             <form onSubmit={handleCreateElection} className="space-y-4">
               <input
@@ -149,13 +152,13 @@ export default function AdminDashboard({ user, onLogout }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Election Title"
-                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400"
+                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-yellow-600/50 text-white placeholder-gray-400"
               />
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Description (optional)"
-                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400"
+                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-yellow-600/50 text-white placeholder-gray-400"
                 rows={2}
               />
               <div className="grid grid-cols-2 gap-2">
@@ -164,14 +167,14 @@ export default function AdminDashboard({ user, onLogout }) {
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   placeholder="Start Date"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-yellow-600/50 text-white"
                 />
                 <input
                   type="datetime-local"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   placeholder="End Date"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-yellow-600/50 text-white"
                 />
               </div>
               <button type="submit" className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition">
@@ -180,13 +183,13 @@ export default function AdminDashboard({ user, onLogout }) {
             </form>
           </div>
 
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="bg-gray-800 rounded-xl p-6 border border-yellow-600">
             <h2 className="text-xl font-semibold text-white mb-4">Add Candidate</h2>
             <form onSubmit={handleAddCandidate} className="space-y-4">
               <select
                 value={selectedElection}
                 onChange={(e) => setSelectedElection(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white"
+                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-yellow-600/50 text-white"
               >
                 <option value="">Select Election</option>
                 {elections.map((e) => (
@@ -198,14 +201,14 @@ export default function AdminDashboard({ user, onLogout }) {
                 value={candidateName}
                 onChange={(e) => setCandidateName(e.target.value)}
                 placeholder="Candidate Name"
-                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400"
+                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-yellow-600/50 text-white placeholder-gray-400"
               />
               <input
                 type="text"
                 value={candidateParty}
                 onChange={(e) => setCandidateParty(e.target.value)}
                 placeholder="Party (optional)"
-                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400"
+                className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-yellow-600/50 text-white placeholder-gray-400"
               />
               <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
                 Add Candidate
@@ -214,18 +217,18 @@ export default function AdminDashboard({ user, onLogout }) {
           </div>
         </div>
 
-        <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-yellow-600">
           <h2 className="text-xl font-semibold text-white mb-4">Manage Elections</h2>
           {elections.length === 0 ? (
             <p className="text-gray-400">No elections created yet.</p>
           ) : (
             <div className="space-y-3">
               {elections.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                <div key={e.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg border border-gray-600">
                   <div>
                     <h3 className="font-semibold text-white">{e.title}</h3>
                     <p className="text-gray-400 text-sm">
-                      {e.isActive ? 'Active' : 'Inactive'} | 
+                      {e.isActive ? '🟢 Active' : '🔴 Inactive'} | 
                       {e.startDate && ` Starts: ${new Date(e.startDate).toLocaleString()}`}
                       {e.endDate && ` | Ends: ${new Date(e.endDate).toLocaleString()}`}
                     </p>
@@ -233,7 +236,7 @@ export default function AdminDashboard({ user, onLogout }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleToggleElection(e.id)}
-                      className={`px-3 py-1 rounded ${e.isActive ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white text-sm`}
+                      className={`px-3 py-1 rounded ${e.isActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white text-sm`}
                     >
                       {e.isActive ? 'Deactivate' : 'Activate'}
                     </button>
@@ -250,7 +253,7 @@ export default function AdminDashboard({ user, onLogout }) {
           )}
           
           {results && (
-            <div className="mt-6 pt-6 border-t border-gray-600">
+            <div className="mt-6 pt-6 border-t border-yellow-600">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-white">Results: {results.election?.title}</h3>
                 <button
@@ -260,13 +263,13 @@ export default function AdminDashboard({ user, onLogout }) {
                   Close
                 </button>
               </div>
-              <p className="text-gray-400 mb-4">Total Votes: {results.totalVotes}</p>
+              <p className="text-yellow-300 mb-4">Total Votes: {results.totalVotes}</p>
               {results.results?.length === 0 ? (
                 <p className="text-gray-400">No votes yet.</p>
               ) : (
                 <div className="space-y-3">
                   {results.results?.map((r, i) => (
-                    <div key={r.id} className="flex items-center justify-between p-4 bg-gray-600 rounded-lg">
+                    <div key={r.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg border border-gray-600">
                       <div>
                         <span className="font-semibold text-white">{r.name}</span>
                         {r.party && <span className="text-gray-400 ml-2">({r.party})</span>}
@@ -285,16 +288,16 @@ export default function AdminDashboard({ user, onLogout }) {
           )}
         </div>
 
-        <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-yellow-600">
           <h2 className="text-xl font-semibold text-white mb-4">Registered Voters ({voters.length})</h2>
           {voters.length === 0 ? (
             <p className="text-gray-400">No voters registered yet.</p>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {voters.slice(0, 12).map((v) => (
-                <div key={v.id} className="p-3 bg-gray-700 rounded-lg">
+                <div key={v.id} className="p-3 bg-gray-700 rounded-lg border border-gray-600">
                   <p className="text-white font-medium">{v.name}</p>
-                  <p className="text-gray-400 text-sm">{v.voterId}</p>
+                  <p className="text-yellow-300 text-sm">{v.voterId}</p>
                 </div>
               ))}
             </div>
