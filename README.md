@@ -1,73 +1,135 @@
-# Welcome to your Lovable project
+# 🗳️ SecureVote — University Voting System
 
-## Project info
+<p align="center">
+  <b>A Secure, Role-Based Online Voting Platform built with MERN Stack</b>
+</p>
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+<p align="center">
+  <img src="https://img.shields.io/badge/Frontend-React-blue?style=for-the-badge&logo=react"/>
+  <img src="https://img.shields.io/badge/Backend-Node.js-green?style=for-the-badge&logo=node.js"/>
+  <img src="https://img.shields.io/badge/Database-MongoDB-darkgreen?style=for-the-badge&logo=mongodb"/>
+  <img src="https://img.shields.io/badge/Deployment-Vercel-black?style=for-the-badge&logo=vercel"/>
+  <img src="https://img.shields.io/badge/API-Express-lightgrey?style=for-the-badge&logo=express"/>
+</p>
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚀 Live Demo
 
-**Use Lovable**
+🌐 Frontend: https://secure-vote-system-eta.vercel.app/  
+⚙️ Backend: Render Deployment  
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📌 Overview
 
-**Use your preferred IDE**
+SecureVote is a full-stack university voting system that enables:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Secure online elections  
+- Role-based access (Admin & Voter)  
+- Real-time vote casting  
+- Strict one-user-one-vote enforcement  
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Built with a focus on **security, scalability, and real-world usability**.
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## ✨ Features
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🔐 Authentication & Security
+- JWT-based authentication  
+- Password hashing using bcrypt  
+- Role-based authorization (Admin / Voter)  
+- Auto-generated unique Voter IDs  
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### 🧑‍💼 Admin Panel
+- Create elections/events  
+- Add candidates dynamically  
+- View voting results  
+- Manage election lifecycle  
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 🧑‍🎓 Voter Panel
+- View available elections  
+- Select candidates  
+- Cast vote securely  
+- Prevent duplicate voting  
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### ⚙️ System Capabilities
+- One vote per user per election  
+- Real-time database updates  
+- Protected API routes  
+- Clean client-server architecture  
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## 🏗️ Tech Stack
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 💻 Frontend
+- React (Vite)  
+- React Router  
+- Axios / Fetch API  
 
-## How can I deploy this project?
+### 🛠️ Backend
+- Node.js  
+- Express.js  
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### 🗄️ Database
+- MongoDB Atlas  
+- Mongoose ODM  
 
-## Can I connect a custom domain to my Lovable project?
+### 🚀 Deployment
+- Frontend → Vercel  
+- Backend → Render  
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🔁 Application Flow
+User registers → Voter ID generated ↓ User logs in → Role-based redirect ↓ Admin creates election ↓ Admin adds candidates ↓ Voter views elections ↓ Voter selects candidate ↓ Vote stored securely ↓ Admin views results
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## 🚫 System Constraints
+
+- Each voter can vote only once per election  
+- Only admins can create elections and candidates  
+- Voting allowed only for active elections  
+
+---
+
+## 📊 Future Enhancements
+
+- Graph-based analytics dashboard  
+- Election timer & auto-close  
+- Email notifications  
+- Multi-factor authentication  
+- Multi-election categories  
+
+---
+
+## 👨‍💻 Author
+
+**Mohammed Saad Affan A.**  
+B.Sc Computer Science  
+Full-Stack Developer  
+
+---
+
+## ⭐ Why This Project Stands Out
+
+- Complete end-to-end system  
+- Real-world use case  
+- Secure architecture  
+- Clean role separation  
+- Fully deployed  
+
+---
+
+<p align="center">
+  ⚡ Built with precision, designed for real-world impact
+</p>
