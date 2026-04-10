@@ -2,17 +2,35 @@ import Election from '../models/Election.js'
 import Candidate from '../models/Candidate.js'
 import Vote from '../models/Vote.js'
 
+const mapCandidate = (candidate) => ({
+  id: candidate._id,
+  name: candidate.name,
+  party: candidate.party
+})
+
 export const getElections = async (req, res) => {
   try {
     const now = new Date()
     
     const elections = await Election.find().sort({ createdAt: -1 })
     const userId = req.user._id
+    const electionIds = elections.map((election) => election._id)
+    const candidates = await Candidate.find({ electionId: { $in: electionIds } }).sort({ createdAt: 1 })
+    const candidatesByElectionId = new Map()
+
+    for (const candidate of candidates) {
+      const key = candidate.electionId.toString()
+      if (!candidatesByElectionId.has(key)) {
+        candidatesByElectionId.set(key, [])
+      }
+      candidatesByElectionId.get(key).push(candidate)
+    }
     
     const electionsWithStatus = await Promise.all(
       elections.map(async (e) => {
         const hasVoted = await Vote.findOne({ userId, electionId: e._id })
         const isOpen = checkElectionOpen(e, now)
+        const electionCandidates = candidatesByElectionId.get(e._id.toString()) || []
         
         return {
           id: e._id,
@@ -22,7 +40,9 @@ export const getElections = async (req, res) => {
           isActive: e.isActive,
           isOpen,
           startDate: e.startDate,
-          endDate: e.endDate
+          endDate: e.endDate,
+          candidateCount: electionCandidates.length,
+          candidates: electionCandidates.map(mapCandidate)
         }
       })
     )
@@ -53,7 +73,7 @@ export const getCandidates = async (req, res) => {
     
     const isOpen = checkElectionOpen(election, now)
     
-    const candidates = await Candidate.find({ electionId })
+    const candidates = await Candidate.find({ electionId }).sort({ createdAt: 1 })
     
     return res.status(200).json({
       election: {
@@ -62,11 +82,7 @@ export const getCandidates = async (req, res) => {
         isOpen,
         isActive: election.isActive
       },
-      candidates: candidates.map(c => ({
-        id: c._id,
-        name: c.name,
-        party: c.party
-      }))
+      candidates: candidates.map(mapCandidate)
     })
   } catch (error) {
     console.error('Get candidates error:', error)

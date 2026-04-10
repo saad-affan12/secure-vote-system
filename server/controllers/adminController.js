@@ -3,16 +3,59 @@ import Candidate from '../models/Candidate.js'
 import User from '../models/User.js'
 import Vote from '../models/Vote.js'
 
+const mapCandidate = (candidate) => ({
+  id: candidate._id,
+  name: candidate.name,
+  party: candidate.party
+})
+
+const buildElectionResponse = (election, candidates = []) => ({
+  id: election._id,
+  title: election.title,
+  description: election.description,
+  isActive: election.isActive,
+  startDate: election.startDate,
+  endDate: election.endDate,
+  createdAt: election.createdAt,
+  candidates: candidates.map(mapCandidate),
+  candidateCount: candidates.length
+})
+
 export const createElection = async (req, res) => {
   try {
-    const { title, description, startDate, endDate } = req.body
+    const { title, description, startDate, endDate, candidates = [] } = req.body
+    const normalizedTitle = title?.trim()
     
-    if (!title) {
+    if (!normalizedTitle) {
       return res.status(400).json({ message: 'Please provide election title' })
+    }
+
+    const normalizedCandidates = candidates
+      .map((candidate) => ({
+        name: candidate?.name?.trim(),
+        party: candidate?.party?.trim() || ''
+      }))
+      .filter((candidate) => candidate.name)
+
+    const duplicateCandidateNames = new Set()
+    const seenCandidateNames = new Set()
+
+    for (const candidate of normalizedCandidates) {
+      const key = candidate.name.toLowerCase()
+      if (seenCandidateNames.has(key)) {
+        duplicateCandidateNames.add(candidate.name)
+      }
+      seenCandidateNames.add(key)
+    }
+
+    if (duplicateCandidateNames.size > 0) {
+      return res.status(400).json({
+        message: `Duplicate candidates are not allowed: ${Array.from(duplicateCandidateNames).join(', ')}`
+      })
     }
     
     const election = new Election({
-      title,
+      title: normalizedTitle,
       description: description || '',
       createdBy: req.user._id,
       startDate: startDate ? new Date(startDate) : null,
@@ -20,17 +63,20 @@ export const createElection = async (req, res) => {
     })
     
     await election.save()
+
+    const createdCandidates = normalizedCandidates.length > 0
+      ? await Candidate.insertMany(
+          normalizedCandidates.map((candidate) => ({
+            ...candidate,
+            electionId: election._id,
+            userId: req.user._id
+          }))
+        )
+      : []
     
     return res.status(201).json({
       message: 'Election created successfully',
-      election: {
-        id: election._id,
-        title: election.title,
-        description: election.description,
-        isActive: election.isActive,
-        startDate: election.startDate,
-        endDate: election.endDate
-      }
+      election: buildElectionResponse(election, createdCandidates)
     })
   } catch (error) {
     console.error('Create election error:', error)
@@ -41,17 +87,25 @@ export const createElection = async (req, res) => {
 export const getElections = async (req, res) => {
   try {
     const elections = await Election.find().sort({ createdAt: -1 })
+    const electionIds = elections.map((election) => election._id)
+    const candidates = await Candidate.find({ electionId: { $in: electionIds } }).sort({ createdAt: 1 })
+    const candidatesByElectionId = new Map()
+
+    for (const candidate of candidates) {
+      const key = candidate.electionId.toString()
+      if (!candidatesByElectionId.has(key)) {
+        candidatesByElectionId.set(key, [])
+      }
+      candidatesByElectionId.get(key).push(candidate)
+    }
     
     return res.status(200).json({
-      elections: elections.map(e => ({
-        id: e._id,
-        title: e.title,
-        description: e.description,
-        isActive: e.isActive,
-        startDate: e.startDate,
-        endDate: e.endDate,
-        createdAt: e.createdAt
-      }))
+      elections: elections.map((election) =>
+        buildElectionResponse(
+          election,
+          candidatesByElectionId.get(election._id.toString()) || []
+        )
+      )
     })
   } catch (error) {
     console.error('Get elections error:', error)
@@ -88,8 +142,10 @@ export const toggleElectionStatus = async (req, res) => {
 export const addCandidate = async (req, res) => {
   try {
     const { electionId, name, party } = req.body
+    const normalizedName = name?.trim()
+    const normalizedParty = party?.trim() || ''
     
-    if (!electionId || !name) {
+    if (!electionId || !normalizedName) {
       return res.status(400).json({ message: 'Please provide electionId and candidate name' })
     }
     
@@ -98,14 +154,17 @@ export const addCandidate = async (req, res) => {
       return res.status(404).json({ message: 'Election not found' })
     }
     
-    const existingCandidate = await Candidate.findOne({ electionId, name })
+    const existingCandidate = await Candidate.findOne({
+      electionId,
+      name: { $regex: `^${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+    })
     if (existingCandidate) {
       return res.status(400).json({ message: 'Candidate already exists in this election' })
     }
     
     const candidate = new Candidate({
-      name,
-      party: party || '',
+      name: normalizedName,
+      party: normalizedParty,
       electionId,
       userId: req.user._id
     })
@@ -114,11 +173,7 @@ export const addCandidate = async (req, res) => {
     
     return res.status(201).json({
       message: 'Candidate added successfully',
-      candidate: {
-        id: candidate._id,
-        name: candidate.name,
-        party: candidate.party
-      }
+      candidate: mapCandidate(candidate)
     })
   } catch (error) {
     console.error('Add candidate error:', error)
@@ -196,7 +251,7 @@ export const getElectionCandidates = async (req, res) => {
   try {
     const { electionId } = req.params
     
-    const candidates = await Candidate.find({ electionId })
+    const candidates = await Candidate.find({ electionId }).sort({ createdAt: 1 })
     
     return res.status(200).json({
       candidates: candidates.map(c => ({
